@@ -1,26 +1,15 @@
 require('dotenv').config();
 const { Client } = require('pg');
 
-async function main() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+// Cria a conexão
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false } // se estiver usando Heroku/Render, precisa disso
+});
 
-  try {
-    await client.connect();
-    console.log("✅ Conectado ao Neon DB");
+// Conecta ao banco
+client.connect()
+  .then(() => console.log("📡 Conectado ao banco de dados"))
+  .catch(err => console.error("❌ Erro de conexão:", err.stack));
 
-    // Teste: pegar data/hora do servidor
-    const res = await client.query('SELECT NOW()');
-    console.log("🕒 Hora no banco:", res.rows[0]);
-
-  } catch (err) {
-    console.error("❌ Erro de conexão:", err);
-  } finally {
-    await client.end();
-  }
-}
-
-main();
-
+module.exports = client;
