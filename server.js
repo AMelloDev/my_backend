@@ -29,7 +29,7 @@ app.post('/users', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await client.query(
-      "INSERT INTO users (name, password, email) VALUES ($1, $2, $3)",
+      "INSERT INTO users (user_name, hashed_password, email) VALUES ($1, $2, $3)",
       [name, hashedPassword, email]
     );
 
@@ -49,7 +49,7 @@ app.post('/users/login', async (req, res) => {
     }
 
     const result = await client.query(
-      "SELECT * FROM users WHERE name = $1",
+      "SELECT * FROM users WHERE user_name = $1",
       [name]
     );
 
@@ -58,17 +58,25 @@ app.post('/users/login', async (req, res) => {
       return res.status(400).send('Usuário não encontrado');
     }
 
-    const senhaCorreta = await bcrypt.compare(password, user.password);
+    const senhaCorreta = await bcrypt.compare(password, user.hashed_password);
 
     if (!senhaCorreta) {
       return res.status(401).send('Senha incorreta');
     }
 
-    res.send('Seja bem-vindo(a)!');
+    res.json({
+    message: "Seja bem-vindo(a)!",
+    user: { id: user.id, name: user.user_name, email: user.email}
+    })
+
   } catch (err) {
+    if(err.code == '23505'){
+      return res.status(400).send("Email já cadastrado");
+    }
     console.error(err);
     res.status(500).send("Erro ao logar");
-  }
+  } 
+  
 });
 
 app.listen(3000)
