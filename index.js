@@ -4,7 +4,7 @@ const { Client } = require('pg');
 // Cria a conexão
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // se estiver usando Heroku/Render, precisa disso
+  ssl: { rejectUnauthorized: false } 
 });
 
 // Conecta ao banco
