@@ -5,10 +5,12 @@ app.use(express.json());
 
 // importar rotas
 const userRoutes = require('./routes/users');
+const userLoginRoutes = require('./routes/userslogin');
 const institutionRoutes = require('./routes/institutions');
 
 // usar rotas
 app.use('/users', userRoutes);
+app.use('/userslogin', userLoginRoutes);
 app.use('/institutions', institutionRoutes);
 
 app.listen(3000, () => console.log("🚀 Server running on port 3000"));
