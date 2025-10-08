@@ -1,14 +1,53 @@
+
+//------------------------ Inicio User --------------
+// Busca user 
 GET http://localhost:3000/Users
 
 ### 
+// Busca user por id
+GET http://localhost:3000/Users/:id
 
+### 
+// Cria user 
 POST http://localhost:3000/Users
 Content-Type: application/json
 
+###
+// Atualiza user por id 
+PUT http://localhost:3000/Users/:id
+Content-Type: application/json
 
+###
+// Atualiza senha do user por id 
+PUT http://localhost:3000/Users/senha/:id
+Content-Type: application/json
+
+###
+// Atualiza senha do user por id 
+DELETE  http://localhost:3000/Users/:id
+
+
+//------------------------ Inicio User Login --------------
 ### 
-
+// Login do user 
 POST http://localhost:3000/userslogin
 Content-Type: application/json
 
+//------------------------ Inicio Instituições --------------
+### 
+//Busca instituição
+GET HTTP/1.1 http://localhost:3000/institutions
+
+###
+//Busca instituição por id
+GET http://localhost:3000/institutions/:id
+
+###
+//Atualiza instituição por id
+PUT http://localhost:3000/institutions/:id
+Content-Type: application/json
+
+###
+//Deleta instituição por id
+DELETE http://localhost:3000/institutions/:id
 
