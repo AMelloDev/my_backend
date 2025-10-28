@@ -7,10 +7,12 @@ app.use(express.json());
 const userRoutes = require('./routes/users');
 const userLoginRoutes = require('./routes/userslogin');
 const institutionRoutes = require('./routes/institutions');
+const projectsRoutes = require('./routes/projects')
 
 // usar rotas
 app.use('/users', userRoutes);
 app.use('/userslogin', userLoginRoutes);
 app.use('/institutions', institutionRoutes);
+app.use('/projects',projectsRoutes);
 
 app.listen(3000, () => console.log("🚀 Server running on port 3000"));

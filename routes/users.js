@@ -1,7 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const client = require('../index'); // conexão com o banco
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+const client = require('../index');  
+require('dotenv').config();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS, 
+  },
+});
 
 // Buscar todos os usuários
 router.get('/', async (req, res) => {
@@ -25,18 +35,34 @@ router.post('/', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await client.query(
-      'INSERT INTO users (user_name, email, hashed_password) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO users (user_name, email, hashed_password, quantidade_de_logins) VALUES ($1, $2, $3, 0) RETURNING *',
       [
         name, 
         email, 
         hashedPassword
       ]
     );
+await transporter.sendMail({
+      from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Conta criada com sucesso! 🎉',
+      text: `Olá ${name}, sua conta foi criada com sucesso!
 
-    res.status(201).json(result.rows[0]);
+Aqui estão seus dados de acesso:
+- Usuário: ${email}
+- Senha temporária: ${password}
+
+Por favor, mantenha esta senha em segurança.`,
+    });
+
+    res.status(201).json({
+      message: 'Usuário criado e e-mail enviado com sucesso!',
+      user: result.rows[0],
+    });
+
   } catch (err) {
     console.error(err);
-    res.status(500).send('Erro ao criar usuário');
+    res.status(500).send('Erro ao criar usuário ou enviar e-mail');
   }
 });
 
