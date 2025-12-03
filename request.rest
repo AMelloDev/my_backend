@@ -23,7 +23,7 @@ PUT http://localhost:3000/users/senha/:id
 Content-Type: application/json
 
 ###
-// Atualiza senha do user por id 
+// Deleta user por id 
 DELETE  http://localhost:3000/users/:id
 
 
@@ -78,3 +78,12 @@ Content-Type: application/json
 ###
 // Deleta projeto por id
 DELETE  http://localhost:3000/projects/:id
+
+//------------------------ Inicio Type Users --------------
+### 
+GET http://localhost:3000/type_users
+
+//------------------------ Inicio Countries --------------
+
+### 
+GET http://localhost:3000/countries

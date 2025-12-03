@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const client = require('../index');  
+const pool = require('../db');  
 require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 // Buscar todos os usuários
 router.get('/', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM users');
+    const result = await pool.query('SELECT * FROM users');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -27,22 +27,27 @@ router.get('/', async (req, res) => {
 // Criar usuário
 router.post('/', async (req, res) => {
   try {
-    const {name, password, email } = req.body;
+    const { name, password, email, Institution, user_type, Status } = req.body;
 
-    if (!name || !password || !email) {
+    if (!name || !password || !email || !Institution || !user_type) {
       return res.status(400).send('Campos obrigatórios: name, password, email');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await client.query(
-      'INSERT INTO users (user_name, email, hashed_password, quantidade_de_logins) VALUES ($1, $2, $3, 0) RETURNING *',
+
+    const result = await pool.query(
+      'INSERT INTO users (user_name, email, hashed_password, Institution, user_type, Status, quantidade_de_logins) VALUES ($1, $2, $3, $4, $5, $6, 0) RETURNING *',
       [
         name, 
         email, 
-        hashedPassword
+        hashedPassword,
+        Institution,
+        user_type,
+        Status
       ]
     );
-await transporter.sendMail({
+
+    await transporter.sendMail({
       from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Conta criada com sucesso! 🎉',
@@ -55,25 +60,75 @@ Aqui estão seus dados de acesso:
 Por favor, mantenha esta senha em segurança.`,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Usuário criado e e-mail enviado com sucesso!',
       user: result.rows[0],
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).send('Erro ao criar usuário ou enviar e-mail');
+
+    if (err.code === "23505") {
+      return res.status(409).json({
+        error: "email_exists",
+        message: "Este e-mail já está cadastrado."
+      });
+    }
+
+    return res.status(500).send('Erro ao criar usuário ou enviar e-mail');
+  }
+});
+
+//Alterar a senha
+router.put('/senha/:id', async (req, res) => {
+  try {
+    const { password, novaSenha } = req.body;
+    const id = parseInt(req.params.id, 10);
+
+    if (!password) return res.status(400).json({ message: "Insira a senha atual" });
+    if (!novaSenha) return res.status(400).json({ message: "Insira a nova senha" });
+
+    const user = await pool.query(
+      'SELECT hashed_password FROM users WHERE id_users = $1',
+      [id]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    const match = await bcrypt.compare(password, user.rows[0].hashed_password);
+
+    if (!match) {
+      return res.status(401).json({ message: "Senha atual incorreta" });
+    }
+
+    const novaHash = await bcrypt.hash(novaSenha, 10);
+
+    await pool.query(
+      'UPDATE users SET hashed_password = $1, updated_at = NOW() WHERE id_users = $2',
+      [novaHash, id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Senha atualizada com sucesso!"
+    });
+
+  } catch (err) {
+    console.error("Erro ao atualizar senha:", err);
+    res.status(500).json({ message: "Erro interno ao atualizar a senha" });
   }
 });
 
 // buscar usuário por id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM users WHERE id_users = $1',
+    const result = await pool.query('SELECT * FROM users WHERE id_users = $1',
       [
         req.params.id
       ]);
-    if (result.rows.length === 0) return res.status(404).send('Usuário não encontrado');
+    if (result.rows.length === 0) return res.status(404).send('Preencha os campos corretamente');
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -81,23 +136,40 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+
 //alterar usuário
 router.put('/:id', async (req, res) => {
   try {
     
     const {
-      name,
+      user_name,
       email,
+      Institution,
+      user_type,
+      Status
     } = req.body;
     const id = parseInt(req.params.id, 10);
-    const result = await client.query(
-      'UPDATE users SET user_name=$1, email=$2, updated_at = now() WHERE id_users=$3 RETURNING *',
+    const result = await pool.query(
+      `UPDATE users 
+      SET 
+        user_name = $1,
+        email = $2,
+        Institution = $3,
+        user_type = $4,
+        Status = $5,
+        updated_at = NOW()
+      WHERE id_users = $6
+      RETURNING *`,
       [
-        name,
+        user_name,
         email,
+        Institution,
+        user_type,
+        Status,
         id
       ]
-    );
+);  
 
     if (result.rows.length === 0) return res.status(404).send('Usuário não encontrado');
     res.json(result.rows[0]);
@@ -105,44 +177,6 @@ router.put('/:id', async (req, res) => {
     console.error(err);
     res.status(500).send('Erro ao atualizar usuário');
   }
-});
-
-//Alterar a senha
-router.put('/senha/:id', async (req, res) =>{
-  try{
-    const { password, novaSenha}= req.body;
-    const id = parseInt(req.params.id, 10);
-
-
-    if (!password) return res.status(400).send("Insira a senha atual");
-    if (!novaSenha) return res.status(400).send("Insira a Nova senha");
-
-    const equal = await client.query('SELECT hashed_password FROM users WHERE id_users= $1', [id]);
-    if (equal.rows.length === 0) {
-      return res.status(401).send('É uma pena não encontramos o seu usuário');
-    }
-
-    const hashedPassword = equal.rows[0].hashed_password;
-    const match = await bcrypt.compare(password, hashedPassword);
-    
-    if(!match){
-       return res.json({ message: 'Senha atual incorreta' });
-    }
-
-    const novaSenha_hash = await bcrypt.hash(novaSenha, 10);
-    const update = await client.query(
-      'UPDATE users SET hashed_password =$1, updated_at = now() WHERE id_users=$2 RETURNING *',
-      [
-        novaSenha_hash,
-        id
-      ]
-    );
-
-    res.json('Que maravilha!Sua senha foi atualizada');
-  } catch (err) {
-      console.error('Erro ao atualizar senha:', err.message);
-      res.status(500).send('Erro ao atualizar senha');
-    }
 });
 
 //Deletar user
@@ -154,7 +188,7 @@ router.delete('/:id', async (req, res) => {
   }
 
 
-    const result = await client.query(
+    const result = await pool.query(
       'DELETE FROM users WHERE id_users = $1 RETURNING *',
       [id]
     );

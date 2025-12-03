@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const client = require('../index');
+const pool = require('../db');
 
 router.get('/', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM institutions');
+    const result = await pool.query('SELECT * FROM institutions');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
       return res.status(400).send('Campos obrigatórios: Nome Instituição, Código do país(2)', 'Cidade', 'Telefone', 'email');
     }
 
-    const result = await client.query(
+    const result = await pool.query(
       'INSERT INTO institutions (institution_name, institution_country_code, institution_state, institution_city, postal_code, latitude, longitude, phone, email, website, description) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *',
       [
         institution_name,
@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM institutions WHERE id_institution = $1', [req.params.id]);
+    const result = await pool.query('SELECT * FROM institutions WHERE id_institution = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).send('Instituição não encontrada');
     res.json(result.rows[0]);
   } catch (err) {
@@ -84,7 +84,7 @@ router.put('/:id', async (req, res) => {
       description
     } = req.body;
 
-    const result = await client.query(
+    const result = await pool.query(
       `UPDATE institutions SET 
         institution_name=$1, institution_country_code=$2, institution_state=$3, institution_city=$4,
         postal_code=$5, latitude=$6, longitude=$7, phone=$8, email=$9, website=$10, description=$11,
@@ -115,13 +115,25 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const result = await client.query('DELETE FROM institutions WHERE id_institution=$1 RETURNING *', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).send('Instituição não encontrada');
-    res.json({ message: 'Instituição removida com sucesso' });
+    await pool.query('DELETE FROM institutions WHERE id_institution = $1', [id]);
+    return res.json({ message: "Instituição excluída com sucesso." });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Erro ao deletar instituição');
+
+    if (err.detail?.includes("is still referenced")) {
+      return res.status(409).json({
+        error: "Esta instituição não pode ser excluída porque ainda está vinculada a usuários."
+      });
+    }
+
+    console.error("Erro ao excluir instituição:", err);
+
+    return res.status(500).json({
+      error: "Erro inesperado ao excluir instituição."
+    });
   }
 });
 

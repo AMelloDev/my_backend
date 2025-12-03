@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const client = require('../index');
+const pool = require('../db');
 
 router.get('/', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM projects');
+    const result = await pool.query('SELECT * FROM projects');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -31,7 +31,7 @@ router.post('/', async (req, res) => {
       return res.status(400).send('Campos obrigatórios: Título do projeto','Data de início', 'Data de encerramento', 'Supervisor do projeto', 'Instituição linkdada ao projeto');
     }
 
-    const result = await client.query(
+    const result = await pool.query(
       'INSERT INTO projects (project_title, resumed_goal, start_date, end_date, common_language, study_scope, project_url, supervisor, project_institution) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
       [
       project_title,
@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM projects WHERE id_project = $1', [req.params.id]);
+    const result = await pool.query('SELECT * FROM projects WHERE id_project = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).send('Projeto não encontrado');
     res.json(result.rows[0]);
   } catch (err) {
@@ -67,7 +67,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:project_name', async (req, res) => {
   try {
     const searchTerm = `%${req.params.project_name}%`; 
-    const result = await client.query(
+    const result = await pool.query(
       'SELECT * FROM projects WHERE project_name ILIKE $1',
       [searchTerm]
     );
@@ -96,7 +96,7 @@ router.put('/:id', async (req, res) => {
       project_institution
     } = req.body;
 
-    const result = await client.query(
+    const result = await pool.query(
       `UPDATE institutions SET 
         project_title, resumed_goal, start_date, end_date, common_language, study_scope, project_url, supervisor, project_institution VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) WHERE id_project=$10 RETURNING *`,
       [
@@ -122,7 +122,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await client.query('DELETE FROM projects WHERE id_project=$1 RETURNING *', [req.params.id]);
+    const result = await pool.query('DELETE FROM projects WHERE id_project=$1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).send('Projeto não encontrado');
     res.json({ message: 'Projeto removido com sucesso' });
   } catch (err) {
