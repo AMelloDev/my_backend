@@ -64,26 +64,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.get('/:project_name', async (req, res) => {
-  try {
-    const searchTerm = `%${req.params.project_name}%`; 
-    const result = await pool.query(
-      'SELECT * FROM projects WHERE project_name ILIKE $1',
-      [searchTerm]
-    );
-
-    if (result.rows.length === 0)
-      return res.status(404).send('Nenhum projeto encontrado');
-
-    res.json(result.rows); 
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erro ao buscar projetos');
-  }
-});
 
 router.put('/:id', async (req, res) => {
   try {
+    
+
     const {
       project_title,
       resumed_goal,
@@ -95,10 +80,9 @@ router.put('/:id', async (req, res) => {
       supervisor,
       project_institution
     } = req.body;
-
+    const id = parseInt(req.params.id, 10);
     const result = await pool.query(
-      `UPDATE institutions SET 
-        project_title, resumed_goal, start_date, end_date, common_language, study_scope, project_url, supervisor, project_institution VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) WHERE id_project=$10 RETURNING *`,
+      `UPDATE projects SET project_title = $1, resumed_goal = $2, start_date = $3, end_date = $4, common_language = $5, study_scope = $6, project_url = $7, supervisor = $8, project_institution = $9 WHERE id_project = $10 RETURNING *`,
       [
         project_title,
         resumed_goal,
@@ -108,7 +92,8 @@ router.put('/:id', async (req, res) => {
         study_scope,
         project_url,
         supervisor,
-        project_institution
+        project_institution,
+        id
       ]
     );
 
