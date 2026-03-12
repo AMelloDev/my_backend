@@ -24,28 +24,68 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // Criar usuário
 router.post('/', async (req, res) => {
   try {
-    const { name, password, email, Institution, user_type, Status } = req.body;
+    console.log("BODY RECEBIDO NO POST /users:", req.body);
 
-    if (!name || !password || !email || !Institution || !user_type) {
-      return res.status(400).send('Campos obrigatórios: name, password, email');
+    let {
+      name,
+      password,
+      email,
+      institution,
+      Institution,
+      user_type,
+      status = true,
+      projects,
+      edital_id,
+      phone
+    } = req.body;
+
+    // Aceita tanto 'institution' quanto 'Institution'
+    institution = institution || Institution;
+
+    if (!name || !password || !email || !institution || !user_type) {
+      return res.status(400).send('Campos obrigatórios: name, password, email, institution, user_type');
+    }
+
+    if (user_type === 'alun' && (!projects || !edital_id)) {
+      return res.status(400).send('Aluno precisa ter projeto e edital');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO users (user_name, email, hashed_password, Institution, user_type, Status, quantidade_de_logins) VALUES ($1, $2, $3, $4, $5, $6, 0) RETURNING *',
-      [
-        name, 
-        email, 
-        hashedPassword,
-        Institution,
+      `INSERT INTO users 
+      (
+        user_name,
+        email,
+        hashed_password,
+        institution,
         user_type,
-        Status
+        status,
+        projects,
+        edital_id,
+        quantidade_de_logins,
+        phone
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9)
+      RETURNING *`,
+      [
+        name,
+        email,
+        hashedPassword,
+        institution,
+        user_type,
+        status,
+        projects ?? null,
+        edital_id ?? null,
+        phone ?? null
       ]
     );
+
+    console.log("USUÁRIO INSERIDO:", result.rows[0]);
 
     await transporter.sendMail({
       from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
@@ -66,7 +106,7 @@ Por favor, mantenha esta senha em segurança.`,
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("ERRO NO POST /users:", err);
 
     if (err.code === "23505") {
       return res.status(409).json({
@@ -75,7 +115,33 @@ Por favor, mantenha esta senha em segurança.`,
       });
     }
 
-    return res.status(500).send('Erro ao criar usuário ou enviar e-mail');
+    return res.status(500).json({
+      message: 'Erro ao criar usuário ou enviar e-mail',
+      details: err.message
+    });
+  }
+});
+
+router.get('/institution/:institution', async (req, res) => {
+  try {
+    const institution = decodeURIComponent(req.params.institution);
+
+    console.log('🔍 Buscando usuários da instituição:', institution);
+
+    const result = await pool.query(
+      `SELECT id_users, user_name, email
+       FROM users
+       WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))
+       ORDER BY user_name ASC`,
+      [institution]
+    );
+
+    console.log('📊 Resultado da busca:', result.rows.length, 'usuários encontrados');
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Erro ao buscar usuários da instituição:', error);
+    res.status(500).json({ error: 'Erro ao buscar usuários da instituição' });
   }
 });
 
@@ -121,6 +187,31 @@ router.put('/senha/:id', async (req, res) => {
   }
 });
 
+router.get('/aluno/:instituicao', async (req, res) => {
+  try {
+    const instituicao = decodeURIComponent(req.params.instituicao);
+
+    console.log('🔍 Buscando alunos da instituição:', instituicao);
+
+    const result = await pool.query(
+      'SELECT * FROM users WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))',
+      [instituicao]
+    );
+
+    if (result.rows.length === 0) {
+      console.log('⚠️ Nenhum usuário encontrado para:', instituicao);
+      return res.status(404).json({ message: 'Nenhum usuário encontrado' });
+    }
+
+    console.log('📊 Encontrados:', result.rows.length, 'usuários');
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error('❌ Erro ao buscar usuários:', err);
+    res.status(500).json({ error: 'Erro ao buscar usuários' });
+  }
+});
+
 // buscar usuário por id
 router.get('/:id', async (req, res) => {
   try {
@@ -141,37 +232,48 @@ router.get('/:id', async (req, res) => {
 //alterar usuário
 router.put('/:id', async (req, res) => {
   try {
-    
     const {
       user_name,
       email,
-      Institution,
+      institution,
       user_type,
-      Status
+      Status,
+      projects,
+      phone
     } = req.body;
+
     const id = parseInt(req.params.id, 10);
+
     const result = await pool.query(
       `UPDATE users 
-      SET 
-        user_name = $1,
-        email = $2,
-        Institution = $3,
-        user_type = $4,
-        Status = $5,
-        updated_at = NOW()
-      WHERE id_users = $6
-      RETURNING *`,
+       SET 
+         user_name = $1,
+         email = $2,
+         institution = $3,
+         user_type = $4,
+         Status = $5,
+         projects = $6,
+      
+         phone = $7,
+         updated_at = NOW()
+       WHERE id_users = $8
+       RETURNING *`,
       [
         user_name,
         email,
-        Institution,
+        institution,
         user_type,
         Status,
+        projects,
+        phone,
         id
       ]
-);  
+    );
 
-    if (result.rows.length === 0) return res.status(404).send('Usuário não encontrado');
+    if (result.rows.length === 0) {
+      return res.status(404).send('Usuário não encontrado');
+    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
