@@ -24,8 +24,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// Criar usuário
 router.post('/', async (req, res) => {
   try {
     console.log("BODY RECEBIDO NO POST /users:", req.body);
@@ -36,6 +34,7 @@ router.post('/', async (req, res) => {
       email,
       institution,
       Institution,
+      inst_dest,
       user_type,
       status = true,
       projects,
@@ -43,11 +42,10 @@ router.post('/', async (req, res) => {
       phone
     } = req.body;
 
-    // Aceita tanto 'institution' quanto 'Institution'
     institution = institution || Institution;
 
-    if (!name || !password || !email || !institution || !user_type) {
-      return res.status(400).send('Campos obrigatórios: name, password, email, institution, user_type');
+    if (!name || !password || !email || !institution || !user_type || !inst_dest) {
+      return res.status(400).send('Campos obrigatórios: name, password, email, institution, user_type, inst_dest');
     }
 
     if (user_type === 'alun' && (!projects || !edital_id)) {
@@ -63,6 +61,7 @@ router.post('/', async (req, res) => {
         email,
         hashed_password,
         institution,
+        inst_dest,
         user_type,
         status,
         projects,
@@ -70,17 +69,19 @@ router.post('/', async (req, res) => {
         quantidade_de_logins,
         phone
       ) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         name,
         email,
         hashedPassword,
         institution,
+        inst_dest,
         user_type,
         status,
         projects ?? null,
         edital_id ?? null,
+        0,
         phone ?? null
       ]
     );
@@ -236,6 +237,7 @@ router.put('/:id', async (req, res) => {
       user_name,
       email,
       institution,
+      inst_dest,
       user_type,
       Status,
       projects,
@@ -250,10 +252,10 @@ router.put('/:id', async (req, res) => {
          user_name = $1,
          email = $2,
          institution = $3,
+         inst_dest = $4,
          user_type = $4,
          Status = $5,
          projects = $6,
-      
          phone = $7,
          updated_at = NOW()
        WHERE id_users = $8
@@ -262,6 +264,7 @@ router.put('/:id', async (req, res) => {
         user_name,
         email,
         institution,
+        inst_dest,
         user_type,
         Status,
         projects,

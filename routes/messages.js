@@ -87,23 +87,42 @@ router.get('/inbox/:userId', async (req, res) => {
     console.log('🔍 Buscando inbox do usuário:', userId);
 
     const result = await pool.query(
-      `SELECT 
+       `SELECT 
           m.id,
           m.sender_id,
           m.receiver_id,
           m.message_title,
           m.message_text,
-          m.file_id,
           m.is_read,
           m.created_at,
           m.deadline,
           m.message_tp,
-          f.file_name,
-          u.user_name AS sender_name
+          u.user_name AS sender_name,
+          COALESCE(
+  json_agg(
+    json_build_object(
+      'id', f.id,
+      'file_name', f.file_name,
+      'file_path', f.file_path
+    )
+  ) FILTER (WHERE f.id IS NOT NULL),
+  '[]'::json
+) AS files
        FROM messages m
-       LEFT JOIN files f ON m.file_id = f.id
+       LEFT JOIN files f ON f.message_id = m.id
        LEFT JOIN users u ON m.sender_id = u.id_users
        WHERE m.receiver_id = $1
+       GROUP BY
+         m.id,
+         m.sender_id,
+         m.receiver_id,
+         m.message_title,
+         m.message_text,
+         m.is_read,
+         m.created_at,
+         m.deadline,
+         m.message_tp,
+         u.user_name
        ORDER BY m.created_at DESC`,
       [userId]
     );
@@ -116,7 +135,7 @@ router.get('/inbox/:userId', async (req, res) => {
   }
 });
 
-router.post('/send-with-file', upload.single('file'), async (req, res) => {
+router.post('/send-with-file', upload.array('files', 5), async (req, res) => {
   try {
     const { sender_id, receiver_id, message_title, message_text, message_tp, deadline } = req.body;
 
@@ -132,30 +151,36 @@ router.post('/send-with-file', upload.single('file'), async (req, res) => {
       });
     }
 
-    let fileId = null;
-
-    if (req.file) {
-      const fileResult = await pool.query(
-        `INSERT INTO files (file_name, file_path, uploaded_by)
-         VALUES ($1, $2, $3)
-         RETURNING id`,
-        [req.file.originalname, req.file.path, sender_id]
-      );
-
-      fileId = fileResult.rows[0].id;
-    }
-
     const messageResult = await pool.query(
-      `INSERT INTO messages (sender_id, receiver_id, message_title, message_text, message_tp, deadline, file_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO messages (sender_id, receiver_id, message_title, message_text, message_tp, deadline)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [sender_id, receiver_id, message_title, message_text, message_tp, deadline, fileId]
+      [sender_id, receiver_id, message_title, message_text, message_tp, deadline]
     );
 
-    res.json(messageResult.rows[0]);
+    const message = messageResult.rows[0];
+    const arquivosSalvos = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const fileResult = await pool.query(
+          `INSERT INTO files (file_name, file_path, uploaded_by, message_id)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, file_name, file_path`,
+          [file.originalname, file.path, sender_id, message.id]
+        );
+
+        arquivosSalvos.push(fileResult.rows[0]);
+      }
+    }
+
+    res.json({
+      ...message,
+      files: arquivosSalvos,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao enviar mensagem com arquivo' });
+    res.status(500).json({ error: 'Erro ao enviar mensagem com arquivos' });
   }
 });
 
@@ -174,7 +199,9 @@ router.get('/download/:fileId', async (req, res) => {
 
     const file = result.rows[0];
 
-    res.download(file.file_path, file.file_name);
+    const fullPath = path.resolve(file.file_path);
+
+    res.sendFile(fullPath);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao baixar arquivo' });

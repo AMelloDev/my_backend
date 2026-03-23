@@ -8,7 +8,7 @@ router.post('/', async (req, res) => {
     const { name, password } = req.body;
 
     const result = await pool.query(
-      'SELECT id_users, hashed_password, "quantidade_de_logins" FROM users WHERE user_name = $1',
+      'SELECT id_users, hashed_password, user_type, institution, inst_dest, "quantidade_de_logins" FROM users WHERE user_name = $1',
       [name]
     );
 
@@ -39,6 +39,8 @@ router.post('/', async (req, res) => {
       user: {
         id: user.id_users,
         name,
+        type: user.user_type,
+        institution: user.institution,
       },
     });
 

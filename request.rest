@@ -5,8 +5,15 @@ GET http://localhost:3000/users
 
 ### 
 // Busca user por id
+GET http://localhost:3000/users/alun
+
+### 
+// Busca user por id
 GET http://localhost:3000/users/:id
     
+### 
+// Busca user por instituição
+GET http://localhost:3000/users/institution/:institution
 ### 
 // Cria user 
 POST http://localhost:3000/users
@@ -74,6 +81,29 @@ Content-Type: application/json
 ###
 // Deleta projeto por id
 DELETE  http://localhost:3000/projects/:id
+//------------------------ Inicio Edital --------------
+
+//Busca editais
+GET http://localhost:3000/edital
+
+###
+//Busca editais por id
+GET http://localhost:3000/edital/:id
+
+###
+// Cria edital
+POST http://localhost:3000/edital
+Content-Type: application/json
+
+###
+// Atualiza edital por id 
+PUT http://localhost:3000/edital/:id
+Content-Type: application/json
+
+###
+// Deleta edital por id
+DELETE  http://localhost:3000/edital/:id
+Content-Type: application/json   
 
 //------------------------ Inicio Type Users --------------
 ### 
@@ -83,3 +113,28 @@ GET http://localhost:3000/type_users
 
 ### 
 GET http://localhost:3000/countries
+
+
+//------------------------ Inicio Messages --------------
+
+### 
+POST  http://localhost:3000/messages/send
+Content-Type: application/json
+
+### 
+POST  http://localhost:3000/messages/send-with-file
+Content-Type: application/json
+
+###
+GET http://localhost:3000/messages/conversation/:user1/:user2
+
+###
+GET http://localhost:3000/messages/inbox/:userId
+
+
+------------------------- Inicio Student Dashboard --------------
+
+
+###
+GET http://localhost:3000/student_dashboard/:id
+Content-Type: application/json
