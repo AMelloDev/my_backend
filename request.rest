@@ -40,6 +40,12 @@ DELETE  http://localhost:3000/users/:id
 POST http://localhost:3000/userslogin
 Content-Type: application/json
 
+POST http://localhost:3000/userslogin/forgot-password
+Content-Type: application/json
+
+POST http://localhost:3000/userslogin/reset-password
+Content-Type: application/json
+
 //------------------------ Inicio Instituições --------------
 ### 
 //Busca instituição
