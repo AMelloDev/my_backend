@@ -18,6 +18,8 @@ const countriesRoutes =require('./routes/countries');
 const editalRoutes =require('./routes/edital')
 const messagesRoutes = require('./routes/messages');
 const studentDashboardRoutes = require('./routes/student_dashboard');
+const activitiesRoutes = require('./routes/activities');
+
 
 // usar rotas
 app.use('/users', userRoutes);
@@ -29,6 +31,7 @@ app.use('/countries', countriesRoutes);
 app.use('/edital', editalRoutes);
 app.use('/messages', messagesRoutes);
 app.use('/student_dashboard', studentDashboardRoutes);
+app.use('/activities', activitiesRoutes);
 
 app.listen(3000, '0.0.0.0', () => {
   console.log("🚀 Server running on port 3000");

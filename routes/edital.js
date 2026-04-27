@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/country/:id', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM edital WHERE edital_id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).send('Edital não encontrado');

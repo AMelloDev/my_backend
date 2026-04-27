@@ -120,6 +120,10 @@ GET http://localhost:3000/type_users
 ### 
 GET http://localhost:3000/countries
 
+###
+//Busca pais por id
+GET http://localhost:3000/countries/:id
+
 
 //------------------------ Inicio Messages --------------
 
@@ -144,3 +148,31 @@ GET http://localhost:3000/messages/inbox/:userId
 ###
 GET http://localhost:3000/student_dashboard/:id
 Content-Type: application/json
+
+//------------------------ Inicio Activities  --------------
+###
+GET http://localhost:3000/activities
+
+###
+GET http://localhost:3000/activities/user/:userId
+
+###
+GET http://localhost:3000/activities/created/:userId
+
+###
+GET http://localhost:3000/activities/:id
+
+
+
+###
+POST http://localhost:3000/activities
+Content-Type: application/json
+
+###
+PUT http://localhost:3000/activities/:id
+Content-Type: application/json
+
+###
+DELETE http://localhost:3000/activities/:id
+
+

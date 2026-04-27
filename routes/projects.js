@@ -53,6 +53,17 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/created/:userId', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM projects WHERE supervisor = $1', [req.params.userId]);
+    if (result.rows.length === 0) return res.status(404).send('Nenhum projeto criado por este usuário');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao buscar projetos criados');
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM projects WHERE id_project = $1', [req.params.id]);
