@@ -97,6 +97,9 @@ GET http://localhost:3000/edital
 GET http://localhost:3000/edital/:id
 
 ###
+GET http://localhost:3000/download/:id
+
+###
 // Cria edital
 POST http://localhost:3000/edital
 Content-Type: application/json
@@ -175,4 +178,9 @@ Content-Type: application/json
 ###
 DELETE http://localhost:3000/activities/:id
 
+
+//------------------------ Inicio Manager Dashboard --------------
+
+###
+GET http://localhost:3000/admin-dashboard
 

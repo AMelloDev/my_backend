@@ -115,25 +115,47 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+  const client = await pool.connect();
 
   try {
-    await pool.query('DELETE FROM institutions WHERE id_institution = $1', [id]);
-    return res.json({ message: "Instituição excluída com sucesso." });
+    await client.query('BEGIN');
 
-  } catch (err) {
+    const id = parseInt(req.params.id, 10);
 
-    if (err.detail?.includes("is still referenced")) {
-      return res.status(409).json({
-        error: "Esta instituição não pode ser excluída porque ainda está vinculada a usuários."
-      });
+    const instResult = await client.query(
+      `UPDATE institutions
+       SET status = false, updated_at = NOW()
+       WHERE id_institution = $1
+       RETURNING institution_name`,
+      [id]
+    );
+
+    if (instResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: "Instituição não encontrada" });
     }
 
-    console.error("Erro ao excluir instituição:", err);
+    const institutionName = instResult.rows[0].institution_name;
 
-    return res.status(500).json({
-      error: "Erro inesperado ao excluir instituição."
+    await client.query(
+      `UPDATE users
+       SET status = false, updated_at = NOW()
+       WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))`,
+      [institutionName]
+    );
+
+    await client.query('COMMIT');
+
+    return res.json({
+      message: "Instituição e usuários vinculados desativados com sucesso."
     });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Erro ao desativar instituição:", err);
+    return res.status(500).json({ error: "Erro ao desativar instituição." });
+  } finally {
+    client.release();
   }
 });
 

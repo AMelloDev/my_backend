@@ -130,10 +130,10 @@ router.get('/institution/:institution', async (req, res) => {
     console.log('🔍 Buscando usuários da instituição:', institution);
 
     const result = await pool.query(
-      `SELECT id_users, user_name, email
-       FROM users
-       WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))
-       ORDER BY user_name ASC`,
+      `SELECT id_users, user_name, email, institution, user_type, status
+      FROM users
+      WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))
+      ORDER BY user_name ASC`,
       [institution]
     );
 
@@ -288,13 +288,12 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-    return res.status(400).send('ID inválido');
-  }
-
 
     const result = await pool.query(
-      'DELETE FROM users WHERE id_users = $1 RETURNING *',
+      `UPDATE users 
+       SET status = false, updated_at = NOW()
+       WHERE id_users = $1
+       RETURNING *`,
       [id]
     );
 
@@ -302,9 +301,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).send('Usuário não encontrado');
     }
 
-    res.json({ mensagem: 'Usuário deletado com sucesso', usuario: result.rows[0] });
+    res.json({
+      message: 'Usuário desativado com sucesso',
+      user: result.rows[0],
+    });
   } catch (err) {
-    console.error('Erro ao deletar usuário:', err.message);
+    console.error('Erro ao desativar usuário:', err.message);
     res.status(500).send('Erro interno no servidor');
   }
 });

@@ -19,6 +19,7 @@ const editalRoutes =require('./routes/edital')
 const messagesRoutes = require('./routes/messages');
 const studentDashboardRoutes = require('./routes/student_dashboard');
 const activitiesRoutes = require('./routes/activities');
+const managerDashboardRoutes = require('./routes/manager_dashboard')
 
 
 // usar rotas
@@ -32,6 +33,8 @@ app.use('/edital', editalRoutes);
 app.use('/messages', messagesRoutes);
 app.use('/student_dashboard', studentDashboardRoutes);
 app.use('/activities', activitiesRoutes);
+app.use('/admin-dashboard', managerDashboardRoutes);
+
 
 app.listen(3000, '0.0.0.0', () => {
   console.log("🚀 Server running on port 3000");
