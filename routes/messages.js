@@ -208,4 +208,59 @@ router.get('/download/:fileId', async (req, res) => {
   }
 });
 
+router.get('/sent/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const result = await pool.query(
+      `SELECT 
+          m.id,
+          m.sender_id,
+          m.receiver_id,
+          m.message_title,
+          m.message_text,
+          m.is_read,
+          m.created_at,
+          m.deadline,
+          m.message_tp,
+          u.user_name AS receiver_name,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', f.id,
+                'file_name', f.file_name,
+                'file_path', f.file_path
+              )
+            ) FILTER (WHERE f.id IS NOT NULL),
+            '[]'::json
+          ) AS files
+       FROM messages m
+       LEFT JOIN files f ON f.message_id = m.id
+       LEFT JOIN users u ON m.receiver_id = u.id_users
+       WHERE m.sender_id = $1
+       GROUP BY
+         m.id,
+         m.sender_id,
+         m.receiver_id,
+         m.message_title,
+         m.message_text,
+         m.is_read,
+         m.created_at,
+         m.deadline,
+         m.message_tp,
+         u.user_name
+       ORDER BY m.created_at DESC`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao buscar mensagens enviadas:', error);
+    res.status(500).json({
+      error: 'Erro ao buscar mensagens enviadas',
+      details: error.message,
+    });
+  }
+});
+
 module.exports = router;

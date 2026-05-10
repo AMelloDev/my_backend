@@ -23,6 +23,8 @@ const managerDashboardRoutes = require('./routes/manager_dashboard')
 
 
 // usar rotas
+app.use('/admin-dashboard', managerDashboardRoutes);
+
 app.use('/users', userRoutes);
 app.use('/userslogin', userLoginRoutes);
 app.use('/institutions', institutionRoutes);
