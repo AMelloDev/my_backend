@@ -20,11 +20,12 @@ const messagesRoutes = require('./routes/messages');
 const studentDashboardRoutes = require('./routes/student_dashboard');
 const activitiesRoutes = require('./routes/activities');
 const managerDashboardRoutes = require('./routes/manager_dashboard')
+const countryCardsRoutes = require('./routes/country_cards');
 
 
 // usar rotas
 app.use('/admin-dashboard', managerDashboardRoutes);
-
+app.use('/country-cards', countryCardsRoutes);
 app.use('/users', userRoutes);
 app.use('/userslogin', userLoginRoutes);
 app.use('/institutions', institutionRoutes);

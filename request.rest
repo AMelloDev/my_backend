@@ -184,3 +184,22 @@ DELETE http://localhost:3000/activities/:id
 ###
 GET http://localhost:3000/admin-dashboard
 
+//------------------------ Inicio Country Cards --------------
+
+###
+GET http://localhost:3000/country-cards
+
+###
+GET http://localhost:3000/country-cards/:id
+
+###
+POST http://localhost:3000/country-cards
+Content-Type: application/json
+
+###
+PUT http://localhost:3000/country-cards/:id
+Content-Type: application/json
+
+###
+DELETE http://localhost:3000/country-cards/:id  
+

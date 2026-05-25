@@ -132,6 +132,7 @@ router.post('/', async (req, res) => {
     const {
       titulo,
       descricao,
+      iniciar_em,
       prazo,
       status,
       prioridade,
@@ -156,6 +157,7 @@ router.post('/', async (req, res) => {
       (
         titulo,
         descricao,
+        iniciar_em,
         prazo,
         status,
         prioridade,
@@ -169,12 +171,13 @@ router.post('/', async (req, res) => {
         criado_em,
         atualizado_em
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())
       RETURNING *
       `,
       [
         titulo,
         descricao || null,
+        iniciar_em || null,
         prazo || null,
         status || 'pendente',
         prioridade || 'media',
@@ -202,6 +205,7 @@ router.put('/:id', async (req, res) => {
     const {
       titulo,
       descricao,
+      iniciar_em,
       prazo,
       status,
       prioridade,
@@ -218,22 +222,24 @@ router.put('/:id', async (req, res) => {
       UPDATE atividade SET
         titulo = $1,
         descricao = $2,
-        prazo = $3,
-        status = $4,
-        prioridade = $5,
-        id_instituicao = $6,
-        id_projeto = $7,
-        id_edital = $8,
-        enviar_para = $9,
-        "obrigatória" = $10,
-        tipo = $11,
+        iniciar_em = $3,
+        prazo = $4,
+        status = $5,
+        prioridade = $6,
+        id_instituicao = $7,
+        id_projeto = $8,
+        id_edital = $9,
+        enviar_para = $10,
+        "obrigatória" = $11,
+        tipo = $12,
         atualizado_em = NOW()
-      WHERE id_activity = $12
+      WHERE id_activity = $13
       RETURNING *
       `,
       [
         titulo,
         descricao || null,
+        iniciar_em || null,
         prazo || null,
         status || 'pendente',
         prioridade || 'media',
