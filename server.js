@@ -21,11 +21,13 @@ const studentDashboardRoutes = require('./routes/student_dashboard');
 const activitiesRoutes = require('./routes/activities');
 const managerDashboardRoutes = require('./routes/manager_dashboard')
 const countryCardsRoutes = require('./routes/country_cards');
+const notificationsRoutes = require('./routes/notifications');
 
 
 // usar rotas
 app.use('/admin-dashboard', managerDashboardRoutes);
 app.use('/country-cards', countryCardsRoutes);
+app.use('/notifications', notificationsRoutes);
 app.use('/users', userRoutes);
 app.use('/userslogin', userLoginRoutes);
 app.use('/institutions', institutionRoutes);
@@ -40,5 +42,5 @@ app.use('/admin-dashboard', managerDashboardRoutes);
 
 
 app.listen(3000, '0.0.0.0', () => {
-  console.log("🚀 Server running on port 3000");
+  console.log("Server running on port 3000");
 });

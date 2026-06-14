@@ -8,8 +8,8 @@ require('dotenv').config();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS, 
+    user: (process.env.EMAIL_USER || '').trim(),
+    pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''),
   },
 });
 
@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    console.log("BODY RECEBIDO NO POST /users:", req.body);
 
     let {
       name,
@@ -44,12 +43,18 @@ router.post('/', async (req, res) => {
 
     institution = institution || Institution;
 
-    if (!name || !password || !email || !institution || !user_type || !inst_dest) {
-      return res.status(400).send('Campos obrigatórios: name, password, email, institution, user_type, inst_dest');
+    if (!name || !password || !email || !institution || !user_type) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: 'Campos obrigatorios: name, password, email, institution, user_type'
+      });
     }
 
-    if (user_type === 'alun' && (!projects || !edital_id)) {
-      return res.status(400).send('Aluno precisa ter projeto e edital');
+    if (user_type === 'alun' && (!projects || !edital_id || !inst_dest)) {
+      return res.status(400).json({
+        error: 'missing_student_fields',
+        message: 'Aluno precisa ter projeto, edital e instituicao de destino'
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -76,7 +81,7 @@ router.post('/', async (req, res) => {
         email,
         hashedPassword,
         institution,
-        inst_dest,
+        user_type === 'alun' ? inst_dest : null,
         user_type,
         status,
         projects ?? null,
@@ -88,31 +93,73 @@ router.post('/', async (req, res) => {
 
     console.log("USUÁRIO INSERIDO:", result.rows[0]);
 
-    await transporter.sendMail({
-      from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Conta criada com sucesso! 🎉',
-      text: `Olá ${name}, sua conta foi criada com sucesso!
+    let emailStatus = {
+      sent: false,
+      messageId: null,
+      error: null
+    };
 
-Aqui estão seus dados de acesso:
-- Usuário: ${email}
-- Senha temporária: ${password}
+    try {
+      const mailInfo = await transporter.sendMail({
+        from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Conta criada com sucesso!',
+        text: `Ola ${name}, sua conta foi criada com sucesso!
 
-Por favor, mantenha esta senha em segurança.`,
-    });
+Aqui estao seus dados de acesso:
+- Usuario: ${name}
+- Senha temporaria: ${password}
+
+Por favor, mantenha esta senha em seguranca.`,
+      });
+
+      emailStatus = {
+        sent: true,
+        messageId: mailInfo.messageId,
+        error: null
+      };
+
+      console.log("EMAIL DE CRIACAO ENVIADO:", {
+        to: email,
+        messageId: mailInfo.messageId,
+        response: mailInfo.response
+      });
+    } catch (mailErr) {
+      emailStatus = {
+        sent: false,
+        messageId: null,
+        error: mailErr.message
+      };
+
+      console.error("ERRO AO ENVIAR EMAIL DE CRIACAO:", {
+        to: email,
+        message: mailErr.message,
+        code: mailErr.code,
+        command: mailErr.command,
+        response: mailErr.response
+      });
+    }
 
     return res.status(201).json({
-      message: 'Usuário criado e e-mail enviado com sucesso!',
+      message: emailStatus.sent
+        ? 'Usuario criado e e-mail enviado com sucesso!'
+        : 'Usuario criado, mas o e-mail nao foi enviado.',
       user: result.rows[0],
+      email: emailStatus,
     });
 
   } catch (err) {
-    console.error("ERRO NO POST /users:", err);
 
     if (err.code === "23505") {
+      const duplicatedField = err.constraint || err.detail || '';
+
       return res.status(409).json({
-        error: "email_exists",
-        message: "Este e-mail já está cadastrado."
+        error: duplicatedField.includes('user_name')
+          ? 'username_exists'
+          : 'email_exists',
+        message: duplicatedField.includes('user_name')
+          ? 'Este nome de usuario ja esta cadastrado.'
+          : 'Este e-mail ja esta cadastrado.'
       });
     }
 
@@ -127,8 +174,6 @@ router.get('/institution/:institution', async (req, res) => {
   try {
     const institution = decodeURIComponent(req.params.institution);
 
-    console.log('🔍 Buscando usuários da instituição:', institution);
-
     const result = await pool.query(
       `SELECT id_users, user_name, email, institution, user_type, status
       FROM users
@@ -137,11 +182,10 @@ router.get('/institution/:institution', async (req, res) => {
       [institution]
     );
 
-    console.log('📊 Resultado da busca:', result.rows.length, 'usuários encontrados');
 
     res.json(result.rows);
   } catch (error) {
-    console.error('❌ Erro ao buscar usuários da instituição:', error);
+    console.error('Erro ao buscar usuários da instituição:', error);
     res.status(500).json({ error: 'Erro ao buscar usuários da instituição' });
   }
 });
@@ -192,7 +236,6 @@ router.get('/aluno/:instituicao', async (req, res) => {
   try {
     const instituicao = decodeURIComponent(req.params.instituicao);
 
-    console.log('🔍 Buscando alunos da instituição:', instituicao);
 
     const result = await pool.query(
       'SELECT * FROM users WHERE LOWER(TRIM(institution)) = LOWER(TRIM($1))',
@@ -200,15 +243,13 @@ router.get('/aluno/:instituicao', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      console.log('⚠️ Nenhum usuário encontrado para:', instituicao);
       return res.status(404).json({ message: 'Nenhum usuário encontrado' });
     }
 
-    console.log('📊 Encontrados:', result.rows.length, 'usuários');
     res.json(result.rows);
 
   } catch (err) {
-    console.error('❌ Erro ao buscar usuários:', err);
+    console.error(' Erro ao buscar usuários:', err);
     res.status(500).json({ error: 'Erro ao buscar usuários' });
   }
 });
@@ -253,12 +294,12 @@ router.put('/:id', async (req, res) => {
          email = $2,
          institution = $3,
          inst_dest = $4,
-         user_type = $4,
-         Status = $5,
-         projects = $6,
-         phone = $7,
+         user_type = $5,
+         status = $6,
+         projects = $7,
+         phone = $8,
          updated_at = NOW()
-       WHERE id_users = $8
+       WHERE id_users = $9
        RETURNING *`,
       [
         user_name,

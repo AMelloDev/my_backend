@@ -203,3 +203,28 @@ Content-Type: application/json
 ###
 DELETE http://localhost:3000/country-cards/:id  
 
+//------------------------ Inicio Notifications --------------
+
+
+###
+GET http://localhost:3000/notifications/user/:userId
+
+###
+GET http://localhost:3000/notifications/user/:userId/unread-count
+
+###
+POST http://localhost:3000/notifications
+Content-Type: application/json
+
+###
+PUT http://localhost:3000/notifications/:id/read
+Content-Type: application/json
+
+###
+PUT http://localhost:3000/notifications/:userId/read-all
+Content-Type: application/json
+
+###
+DELETE http://localhost:3000/notifications/:id
+
+

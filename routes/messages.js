@@ -35,7 +35,24 @@ router.post('/send', async (req, res) => {
       [sender_id, receiver_id, message_title, message_text, message_tp, deadline]
     );
 
-    res.json(result.rows[0]);
+    const message = result.rows[0];
+
+    await pool.query(
+      `INSERT INTO notifications
+      (user_id, title, message, type, reference_id, reference_type)
+      VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        receiver_id,
+        'Nova mensagem recebida',
+        message_title,
+        'message',
+        message.id,
+        'messages'
+      ]
+    );
+
+    res.json(message);
+
 
   } catch (error) {
     console.error(error);
@@ -156,6 +173,29 @@ router.post('/send-with-file', upload.array('files', 5), async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [sender_id, receiver_id, message_title, message_text, message_tp, deadline]
+    );
+
+    await pool.query(
+      `
+      INSERT INTO notifications
+      (
+        user_id,
+        title,
+        message,
+        type,
+        reference_id,
+        reference_type
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      `,
+      [
+        receiver_id,
+        'Nova mensagem recebida',
+        message_title,
+        'message',
+        message.id,
+        'messages'
+      ]
     );
 
     const message = messageResult.rows[0];
