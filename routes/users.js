@@ -7,21 +7,7 @@ const nodemailer = require('nodemailer');
 const pool = require('../db');  
 
 const emailUser = (process.env.EMAIL_USER || '').trim();
-const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: emailUser,
-    pass: emailPass,
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 30000,
-});
 // Buscar todos os usuários
 router.get('/', async (req, res) => {
   try {
@@ -110,7 +96,8 @@ router.post('/', async (req, res) => {
 
     try {
       const mailInfo = await transporter.sendMail({
-        from: `"Projeto Exchange" <${emailUser}>`,        to: email,
+        from: `"Projeto Exchange" <${emailUser}>`,        
+        to: email,
         subject: 'Conta criada com sucesso!',
         text: `Ola ${name}, sua conta foi criada com sucesso!
 
