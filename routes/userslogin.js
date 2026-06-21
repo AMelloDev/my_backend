@@ -1,26 +1,12 @@
+require('dotenv').config();
+
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); 
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+const transporter = require('./servermail');
 
 const emailUser = (process.env.EMAIL_USER || '').trim();
-const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: emailUser,
-    pass: emailPass,
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 30000,
-});
 
 router.post('/', async (req, res) => {
   try {
@@ -96,7 +82,7 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     await transporter.sendMail({
-      from: `"Projeto Exchange" <${process.env.EMAIL_USER}>`,
+      from: `"Projeto Exchange" <${emailUser}>`,
       to: email,
       subject: 'Recuperação de senha 🔐',
       text: `Olá ${user.user_name},
