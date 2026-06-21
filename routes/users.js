@@ -1,9 +1,10 @@
+require('dotenv').config();
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const pool = require('../db');  
-require('dotenv').config();
 
 const emailUser = (process.env.EMAIL_USER || '').trim();
 const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
