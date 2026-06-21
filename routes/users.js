@@ -109,8 +109,7 @@ router.post('/', async (req, res) => {
 
     try {
       const mailInfo = await transporter.sendMail({
-        from: `"Equipe do Projeto" <${process.env.EMAIL_USER}>`,
-        to: email,
+        from: `"Projeto Exchange" <${emailUser}>`,        to: email,
         subject: 'Conta criada com sucesso!',
         text: `Ola ${name}, sua conta foi criada com sucesso!
 
